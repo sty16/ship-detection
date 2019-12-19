@@ -12,6 +12,4 @@ g++ main.o mat_read.o -L/usr/local/MATLAB/R2019b/bin/glnxa64/ -lmat -lmx -leng -
 
 >注意：
 >
->将-I后的路径更换为相应的**/extern/include/路径
->
->将-L后的路径更换为 **/bin/glnxa64路径
+>将-I后的路径更换为MATLAB相应的**/extern/include/路径, 将-L后的路径更换为MATLAB **/bin/glnxa64路径

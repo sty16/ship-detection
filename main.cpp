@@ -5,7 +5,7 @@ int main()
 {   
     complex<double> ***c_S;
     size_t m,n,d;
-    const char *filename = "./S_Dalian.mat";
+    const char *filename = "./data.mat";
     c_S = ReadComplexMxArray3D(filename,"S");
     dim3D arraydim = matGetDim3D(filename,"S");
     m = arraydim.m; n = arraydim.n; d = arraydim.d;
