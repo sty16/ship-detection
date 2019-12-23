@@ -20,15 +20,15 @@ This folder contain the CUDA implemetation for ship detection algotithms in synt
 
 >Yi Cui, Jian Yang, Yoshio Yamaguchi, Gulab Singh, Sang-Eun Park, and Hirokazu Kobayashi. "On semiparametric clutter estimation for ship detection in synthetic aperture radar images." *IEEE transactions on geoscience and remote sensing* 51, no. 5 (2013): 3170-3180.
 
-###### 2.1 Prerequisites
+#### 2.1 Prerequisites
 
 ```
 MATLAB r2019b ------>   installed in the /usr/local/MATLAB
-opencv4       ------>   installed in the /usr/local/include\
+opencv4       ------>   installed in the /usr/local/include
 CUDA          ------>   installed in the /usr/local/cuda
 ```
 
-##### 2.2 make
+#### 2.2 make
 
 ```
 cd ./LMM_CFAR
