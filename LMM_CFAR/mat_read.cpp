@@ -110,3 +110,14 @@ void FreeComplexArray3D(complex<double> ***arraydata, dim3D arraydim)
     }
     delete[] arraydata;
 }
+
+void FreeDoubleArray(double ** arraydata, dim3D arraydim)
+{
+    size_t m,n;
+    m = arraydim.m; n = arraydim.n;
+    for(int i=0;i<m;i++)
+    {
+        delete[] arraydata[i];
+    }
+    delete[] arraydata;
+}

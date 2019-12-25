@@ -16,3 +16,4 @@ complex<double>*** ReadComplexMxArray3D(const char *filename,const char *variabl
 dim3D matGetDim3D(const char *filename,const char *variable);
 void FreeComplexArray3D(complex<double> ***arraydata, dim3D arraydim);
 double ** ReadDoubleMxArray(const char *filename, const char *variable);
+void FreeDoubleArray(double **arraydata,dim3D arraydim);
