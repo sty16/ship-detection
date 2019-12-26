@@ -2,6 +2,9 @@
 #include<opencv2/opencv.hpp>
 #include<opencv2/highgui.hpp>
 #include<float.h>
+#include<unistd.h>
+#include<stdlib.h>
+#include<getopt.h>
 using namespace std;
 using namespace cv;
 
@@ -10,14 +13,38 @@ Mat ArrayToImage(double **arraydata, dim3D arraydim);
 Mat ArrayToMat(double **arraydata, dim3D arraydim);
 Mat PadArray(Mat image, int padrows, int padcolumns);
 
-int main()
+int main(int argc, char *argv[])
 {
     double **im;
+    int ch, opt_index;    // opt_index为选项在long_options中的索引
+    const char *optstring = "d:v:";
     int r_c = 15, r_g = 10;
     const char *filename = "./radarsat2-tj.mat";   
-    im = ReadDoubleMxArray(filename,"I");
+    const char *variable = "I";
+    static struct option long_options[] = {
+        {"rc", required_argument, NULL,'c'},
+        {"rg", required_argument, NULL,'g'}
+    };
+    while((ch = getopt_long(argc, argv, optstring, long_options, &opt_index)) != -1)
+    {
+        switch(ch)
+        {
+            case 'd':
+                filename = optarg; break;
+            case 'v':
+                variable = optarg; break;
+            case 'c':
+                r_c = atoi(optarg); break;
+            case 'g':
+                r_g = atoi(optarg); break;
+            case '?':
+                cout<<"Unknown option: "<<(char)optopt<<endl;
+                break;
+        }
+    }
+    im = ReadDoubleMxArray(filename, variable);
     size_t m,n;
-    dim3D arraydim = matGetDim3D(filename,"I");
+    dim3D arraydim = matGetDim3D(filename, variable);
     Mat image = ArrayToImage(im, arraydim);
     Mat origin_image = ArrayToMat(im, arraydim);
     double data[3][3] = { {1,2,3},{4,5,6},{7,8,9} };
