@@ -1,4 +1,4 @@
-target = LMM_CFAP.out
+target = LMM_CFAR.out
 objs = LMM_CFAR.o mat_read.o
 CC = g++
 CPPFLAGS = -I. -I/usr/local/MATLAB/R2019b/extern/include/  \
