@@ -1,4 +1,22 @@
 #include<mat_opt.h>
+#include<cuda_runtime.h>
+#include"device_launch_parameters.h"
+
+
+__global__ void hello(int size) 
+{
+    int  a =  0;
+    double *b = new double[size];
+    for(int i = 0;i<size;i++)
+    {
+        b[i] = i;
+        printf("%.1f\n", b[i]);
+    }
+    printf("hello cuda\n");
+}
+
+
+
 
 int main(int argc, char *argv[])
 {
@@ -38,6 +56,7 @@ int main(int argc, char *argv[])
     // Mat C = Mat(3,3,CV_64FC1,data);
     // Mat B = PadArray(C, 2, 2);
     // cout<<B<<endl;
+    hello<<<2,2>>>(6);
     Mat pad_image = PadArray(origin_image,r_c,r_c);
     imshow("gray" , image);
     while(char(waitKey())!='q') {}
