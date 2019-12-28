@@ -8,6 +8,7 @@ LDFLAGS = -L/usr/local/lib  -L/usr/local/MATLAB/R2019b/bin/glnxa64/ \
 
 $(target):$(objs)
 	$(CC) $(objs) $(LDFLAGS) -o $(target)
+	rm -f $(objs)
 
 %.o:%.cpp
 	$(CC) -c $(CPPFLAGS) $^
