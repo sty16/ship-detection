@@ -1,12 +1,13 @@
 #include<mat_opt.h>
 #include<stdio.h>
+#include<fstream>
 #include<stdint.h>
 #include<assert.h>
 #include<cuda_runtime.h>
 #include"device_launch_parameters.h"
-#include<helper_functions.h>
 #include<helper_cuda.h>
-
+#include<helper_functions.h>
+using namespace cv;
 __global__ void lognormal_mixture(double *im, int r_c, int r_g, int k, double Pf, int m, int n) 
 {
     /***********************************************************************
@@ -31,7 +32,7 @@ __global__ void lognormal_mixture(double *im, int r_c, int r_g, int k, double Pf
     double *data = new double[size];
     for(int i = 0;i<size;i++)
     {
-        data[i] = 1.0;
+        // data[i] = 1.0;
         // printf("%.1f\n", data[i]);
     }
     delete[] data;
@@ -43,11 +44,11 @@ __global__ void lognormal_mixture(double *im, int r_c, int r_g, int k, double Pf
 int main(int argc, char *argv[])
 {
     double **im, *im_pad, *im_dev, *data_dev;
-    int ch, opt_index;    // opt_index为选项在long_options中的索引
-    const char *optstring = "d:v:";
+    int ch, opt_index, channels,m,n;    // opt_index为选项在long_options中的索引
+    const char *optstring = "d:c:g:";
     int r_c = 15, r_g = 10;
-    const char *filename = "./radarsat2-tj.mat";   
-    const char *variable = "I";
+    dim3D arraydim;
+    const char *filename = "../data/data.bin";   
     static struct option long_options[] = {
         {"rc", required_argument, NULL,'c'},
         {"rg", required_argument, NULL,'g'}
@@ -58,8 +59,6 @@ int main(int argc, char *argv[])
         {
             case 'd':
                 filename = optarg; break;
-            case 'v':
-                variable = optarg; break;
             case 'c':
                 r_c = atoi(optarg); break;
             case 'g':
@@ -69,13 +68,25 @@ int main(int argc, char *argv[])
                 break;
         }
     }
-    im = ReadDoubleMxArray(filename, variable);
-    int m,n;
-    dim3D arraydim = matGetDim3D(filename, variable);
-    m = (int)arraydim.m; n = (int) arraydim.n;
+    ifstream infile(filename, ios::in | ios::binary);
+    infile.read((char *)&channels, sizeof(int));
+    infile.read((char *)&arraydim.m,sizeof(size_t));
+    infile.read((char *)&arraydim.n,sizeof(size_t));
+    m = (int)arraydim.m; n = (int)arraydim.n;
+    cout<<m<<" "<<n<<endl;
+    im = new double *[m];
+    for(int i=0;i<m;i++)
+    {
+        im[i] = new double[n];
+        for(int j=0;j<n;j++)
+        {
+            infile.read((char *)&im[i][j], sizeof(double));
+            //cout<<im[i][j];
+        }
+    }
     Mat image = ArrayToImage(im, arraydim);
     Mat origin_image = ArrayToMat(im, arraydim);
-    //   double data[3][3] = { {1,2,3},{4,5,6},{7,8,9} };
+    // double data[3][3] = { {1,2,3},{4,5,6},{7,8,9} };
     Mat pad_image = PadArray(origin_image,r_c,r_c);
     im_pad = pad_image.ptr<double>(0); 
     int row = pad_image.rows;int col = pad_image.cols;
@@ -86,9 +97,9 @@ int main(int argc, char *argv[])
     checkCudaErrors(cudaMalloc((void**)&data_dev,sizeof(double)*(r_c*r_c-r_g*r_g)*griddim.x*griddim.y*blockdim.x*blockdim.y));
     lognormal_mixture<<<griddim,blockdim>>>(im_dev, r_c, r_g, 3, 0.0005,m,n);
     cudaThreadSynchronize();
-    // imshow("gray" , image);
-    // while(char(waitKey())!='q') {}
-    FreeDoubleArray(im,arraydim);
+    imshow("gray" , image);
+    while(char(waitKey())!='q') {}
+    // FreeDoubleArray(im,arraydim);
     image.release();
 	return 0 ;
 }

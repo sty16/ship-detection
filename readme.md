@@ -33,7 +33,11 @@ cd ./LMM_CFAR
 make
 ./LMM_CFAR.out
 ```
-
+### 3. MatToBin Folder
+This folder change .mat file to .bin file. The order of data in the binary file: (int)channels (size_t) m (size_t) n (double) data
+```
+./matTobin --data ../data/radarsat2-tj.mat -v I -c 1
+```
 
 
 

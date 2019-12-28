@@ -5,10 +5,9 @@
 #include<stdlib.h>
 #include<getopt.h>
 #pragma once
-using std::cout;
-using std::endl;
-using std::complex;
-using namespace cv;
+using namespace std;
+using cv::Mat;
+using cv::waitKey;
 
 struct dim3D
 {
