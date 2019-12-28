@@ -39,8 +39,6 @@ __global__ void lognormal_mixture(double *im, int r_c, int r_g, int k, double Pf
 }
 
 
-
-
 int main(int argc, char *argv[])
 {
     double **im, *im_pad, *im_dev, *data_dev;
