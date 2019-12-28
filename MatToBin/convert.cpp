@@ -37,9 +37,9 @@ int main(int argc, char *argv[])
         dim3D  arraydim = matGetDim3D(filename, variable);
         size_t m,n;
         m = arraydim.m;n = arraydim.n;
-        outfile.write((char *)&channels,sizeof(channels));
-        outfile.write((char *)&m,sizeof(m));
-        outfile.write((char *)&n,sizeof(n));
+        outfile.write((char *)&channels,sizeof(int));
+        outfile.write((char *)&m,sizeof(size_t));
+        outfile.write((char *)&n,sizeof(size_t));
         for(size_t i=0;i<m;i++)
         {
             for(size_t j = 0;j<n;j++)
