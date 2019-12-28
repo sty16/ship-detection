@@ -1,4 +1,3 @@
-#include<mat_read.h>
 #include<opencv2/opencv.hpp>
 #include<opencv2/highgui.hpp>
 #include<float.h>
@@ -6,8 +5,17 @@
 #include<stdlib.h>
 #include<getopt.h>
 #pragma once
-using namespace std;
+using std::cout;
+using std::endl;
+using std::complex;
 using namespace cv;
+
+struct dim3D
+{
+    size_t m;
+    size_t n;
+    size_t d;
+};
 
 
 Mat ArrayToImage(double **arraydata, dim3D arraydim);

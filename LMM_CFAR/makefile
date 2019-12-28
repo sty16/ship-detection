@@ -4,7 +4,7 @@ CC = g++
 NVCC = nvcc
 CPPFLAGS = -I. -I/usr/local/MATLAB/R2019b/extern/include/  \
 -I/usr/local/include/opencv4/opencv -I/usr/local/include/opencv4 -std=c++11
-CUFLAGS = -I. -I/usr/local/MATLAB/R2019b/extern/include/  \
+CUFLAGS = -I. -I/usr/local/cuda-10.2/samples/common/inc -I/usr/local/MATLAB/R2019b/extern/include/  \
 -I/usr/local/include/opencv4/opencv -I/usr/local/include/opencv4 -std=c++11
 LDFLAGS = -L/usr/lib/x86_64-linux-gnu/  -L/usr/local/lib  -L/usr/local/MATLAB/R2019b/bin/glnxa64/ \
 -L/usr/local/cuda-10.2/lib64/  -lcudart -lcudadevrt                                               \

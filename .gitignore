@@ -3,3 +3,4 @@
 *mat
 *.out
 LMM_CFAR/*.mat
+*.bin

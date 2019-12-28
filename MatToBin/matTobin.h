@@ -2,10 +2,7 @@
 #include<iostream>
 #include<complex>
 #pragma once
-using std::cout;
-using std::endl;
-using std::complex;
-
+using namespace std;
 
 struct dim3D
 {
@@ -19,3 +16,4 @@ dim3D matGetDim3D(const char *filename,const char *variable);
 void FreeComplexArray3D(complex<double> ***arraydata, dim3D arraydim);
 double ** ReadDoubleMxArray(const char *filename, const char *variable);
 void FreeDoubleArray(double **arraydata,dim3D arraydim);
+double * GetMxArrayPtr(const char*filename, const char *variable);
