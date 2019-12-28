@@ -14,6 +14,7 @@ LDFLAGS = -L/usr/lib/x86_64-linux-gnu/  -L/usr/local/lib \
 
 $(target):$(objs)
 	$(CC) $(objs) $(LDFLAGS) -o $(target)
+	rm -f $(objs)
 
 %.o:%.cpp
 	$(CC) -c $(CPPFLAGS) $^
