@@ -3,7 +3,8 @@
 #include<fstream>
 #include<stdint.h>
 #include<assert.h>
-#include<ctime>
+#include<time.h>
+#include<unistd.h>
 #include<cuda_runtime.h>
 #include<thrust/sort.h>
 #include"device_launch_parameters.h"
@@ -225,11 +226,14 @@ int main(int argc, char *argv[])
         }
     }
     end = clock();
-    cout<<"GPU用时："<<(float)end-start<<end;
-    imshow("gray" , detect_result);
-    while(char(waitKey())!='q') {}
+    imshow("origin" , image); 
+    imshow("detected" , detect_result);
+    while(char(waitKey())!='q') 
+	{    
+	}
     // FreeDoubleArray(im,arraydim);
     image.release();
+    cout<<"GPU用时："<<(float)(end-start)/CLOCKS_PER_SEC<<end<<endl;
 	return 0 ;
 }
 
