@@ -8,6 +8,10 @@
 #include<helper_cuda.h>
 #include<helper_functions.h>
 using namespace cv;
+
+
+__device__ void  Memcpy(double *im, double *data, int row, int col, int r_c, int r_g, int n);
+
 __global__ void lognormal_mixture(double *im, int r_c, int r_g, int k, double Pf, int m, int n) 
 {
     /***********************************************************************
@@ -33,13 +37,78 @@ __global__ void lognormal_mixture(double *im, int r_c, int r_g, int k, double Pf
     }
 }
 
+__global__ void CFAR_Gamma(double *im, double *T, int r_c, int r_g, int m, int n) {
+
+    int row = threadIdx.x + blockDim.x * blockIdx.x;
+    int col = threadIdx.y + blockDim.y * blockIdx.y;
+    int size = (r_c*r_c-r_g*r_g)*4;
+    double clutter_sum = 0, I_C = 0, I = 0, *clutter;
+    __shared__  double data[4600];
+    if(row < m && col < n)
+    {
+        int index = threadIdx.x + threadIdx.y*blockDim.x;
+        clutter =  &data[index*size];
+        Memcpy(im, clutter, row, col, r_c, r_g, n);
+        int number = size * 0.7;
+        for(int i = 0; i< number; i++)
+        {
+            clutter_sum += clutter[i];
+        }
+        I_C = clutter_sum/number;
+        I = im[row*n+col];
+        T[row*n+col] = I/I_C; 
+    }
+}
+__device__ void  Memcpy(double *im, double *data, int row, int col, int r_c, int r_g, int n)
+{   
+    //上部杂波 5x30
+    int index = 0;
+    for(int i = row-r_c;i<row-r_g;i++)
+    {
+        for(int j=col-r_c;j<=col+r_c;j++)
+        {
+            data[index] = im[i*n+j];   
+            index += 1;
+        }
+    }
+    //下部杂波 5x30
+    for(int i = row+r_g+1;i<=row+r_c;i++)
+    {
+        for(int j=col-r_c;j<=col+r_c;j++)
+        {
+            data[index] = im[i*n+j];   
+            index += 1;
+        }
+       
+    }
+    //左侧杂波20x5
+    for(int i = row-r_g;i<=row+r_g;i++)
+    {
+        for(int j = col-r_c;j<col-r_g;j++)
+        {
+            data[index] = im[i*n+j];
+            index += 1;
+        }
+    }
+    //右侧杂波20x5
+    for(int i = row-r_g;i<=row+r_g;i++)
+    {
+        for(int j = col+r_g+1;j<=col+r_c;j++)
+        {
+            data[index] = im[i*n+j];
+            index += 1;
+        }
+    }
+}
+
+
 
 int main(int argc, char *argv[])
 {
-    double **im, *im_pad, *im_dev, *data_dev;
+    double **im, *im_pad, *im_dev, *data_dev, *T, *result, threshold;
     int ch, opt_index, channels,m,n;    // opt_index为选项在long_options中的索引
     const char *optstring = "d:c:g:";
-    int r_c = 15, r_g = 10;
+    int r_c = 15, r_g = 10;threshold = 3.7;
     dim3D arraydim;
     const char *filename = "../data/data.bin";   
     static struct option long_options[] = {
@@ -89,7 +158,6 @@ int main(int argc, char *argv[])
         for(int j=0;j<n;j++)
         {
             infile.read((char *)&im[i][j], sizeof(double));
-            //cout<<im[i][j];
         }
     }
     Mat image = ArrayToImage(im, arraydim);
@@ -98,14 +166,27 @@ int main(int argc, char *argv[])
     Mat pad_image = PadArray(origin_image,r_c,r_c);
     im_pad = pad_image.ptr<double>(0); 
     int row = pad_image.rows;int col = pad_image.cols;
-    dim3 blockdim(16,16);
+    dim3 blockdim(3,3);
     dim3 griddim((m+blockdim.x-1)/blockdim.x , (n+blockdim.y-1)/blockdim.y);
     checkCudaErrors(cudaMalloc((void**)&im_dev, sizeof(double)*row*col));
+    checkCudaErrors(cudaMalloc((void**)&T, sizeof(double)*m*n));
     checkCudaErrors(cudaMemcpy(im_dev, im_pad, sizeof(double)*row*col, cudaMemcpyHostToDevice));
-    checkCudaErrors(cudaMalloc((void**)&data_dev,sizeof(double)*(r_c*r_c-r_g*r_g)*griddim.x*griddim.y*blockdim.x*blockdim.y));
-    lognormal_mixture<<<griddim,blockdim>>>(im_dev, r_c, r_g, 3, 0.0005,m,n);
+    result = new double[m*n];
+    CFAR_Gamma<<<griddim,blockdim>>>(im_dev, T, r_c, r_g, m, n);
     cudaThreadSynchronize();
-    imshow("gray" , image);
+    checkCudaErrors(cudaMemcpy(result, T,  sizeof(double)*m*n, cudaMemcpyDeviceToHost));
+    Mat detect_result = Mat::zeros(m, n, CV_8UC1);
+    for(int i = 0;i<m;i++)
+    {
+        for(int j = 0;j<n;j++)
+        {
+            if(result[i*n+j]>threshold)
+                detect_result.at<uchar>(i,j) = (unsigned char)255;
+            else
+                detect_result.at<uchar>(i,j) = (unsigned char)0;
+        }
+    }
+    imshow("gray" , detect_result);
     while(char(waitKey())!='q') {}
     // FreeDoubleArray(im,arraydim);
     image.release();
