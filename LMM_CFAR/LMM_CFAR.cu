@@ -58,7 +58,14 @@ __global__ void CFAR_Gamma(double *im, double *T, int r_c, int r_g, int m, int n
             clutter_sum += clutter[i];
         }
         I_C = clutter_sum/number;
-        I = im[row*n_pad+col];
+        for(int i = row-1; i <= row+1;i++)
+        {
+            for(int j = col-1;j <= col+1;j++)
+            {
+                I += im[i*n_pad+col];
+            }
+        }
+        I = I/9;
         T[row*n+col] = I/I_C; 
         if(row==30&&col==30)
         {
@@ -136,7 +143,7 @@ int main(int argc, char *argv[])
     double **im, *im_pad, *im_dev, *data_dev, *T, *result, threshold;
     int ch, opt_index, channels,m,n;    // opt_index为选项在long_options中的索引
     const char *optstring = "d:c:g:";
-    int r_c = 15, r_g = 10;threshold = 3.7;
+    int r_c = 15, r_g = 10;threshold = 4.7;
     dim3D arraydim;
     const char *filename = "../data/data.bin";   
     static struct option long_options[] = {
