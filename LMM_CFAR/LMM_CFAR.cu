@@ -38,25 +38,29 @@ __global__ void lognormal_mixture(double *im, int r_c, int r_g, int k, double Pf
 }
 
 __global__ void CFAR_Gamma(double *im, double *T, int r_c, int r_g, int m, int n) {
-
+    // n_pad为填充后图像的列数， n为原图像的列数
     int row = threadIdx.x + blockDim.x * blockIdx.x;
     int col = threadIdx.y + blockDim.y * blockIdx.y;
-    int size = (r_c*r_c-r_g*r_g)*4;
+    int size = (r_c*r_c-r_g*r_g)*4;int n_pad = n + 2*r_c;
     double clutter_sum = 0, I_C = 0, I = 0, *clutter;
     __shared__  double data[4600];
     if(row < m && col < n)
     {
         int index = threadIdx.x + threadIdx.y*blockDim.x;
         clutter =  &data[index*size];
-        Memcpy(im, clutter, row, col, r_c, r_g, n);
+        Memcpy(im, clutter, row, col, r_c, r_g, n_pad);
         int number = size * 0.7;
         for(int i = 0; i< number; i++)
         {
             clutter_sum += clutter[i];
         }
         I_C = clutter_sum/number;
-        I = im[row*n+col];
+        I = im[row*n_pad+col];
         T[row*n+col] = I/I_C; 
+        if(row==30&&col==30)
+        {
+            printf("%f", im[row*n_pad+col]);
+        }
     }
 }
 __device__ void  Memcpy(double *im, double *data, int row, int col, int r_c, int r_g, int n)
@@ -165,14 +169,14 @@ int main(int argc, char *argv[])
     // double data[3][3] = { {1,2,3},{4,5,6},{7,8,9} };
     Mat pad_image = PadArray(origin_image,r_c,r_c);
     im_pad = pad_image.ptr<double>(0); 
-    int row = pad_image.rows;int col = pad_image.cols;
+    int row_pad = pad_image.rows;int col_pad = pad_image.cols;
     dim3 blockdim(3,3);
     dim3 griddim((m+blockdim.x-1)/blockdim.x , (n+blockdim.y-1)/blockdim.y);
-    checkCudaErrors(cudaMalloc((void**)&im_dev, sizeof(double)*row*col));
+    checkCudaErrors(cudaMalloc((void**)&im_dev, sizeof(double)*row_pad*col_pad));
     checkCudaErrors(cudaMalloc((void**)&T, sizeof(double)*m*n));
-    checkCudaErrors(cudaMemcpy(im_dev, im_pad, sizeof(double)*row*col, cudaMemcpyHostToDevice));
+    checkCudaErrors(cudaMemcpy(im_dev, im_pad, sizeof(double)*row_pad*col_pad, cudaMemcpyHostToDevice));
     result = new double[m*n];
-    CFAR_Gamma<<<griddim,blockdim>>>(im_dev, T, r_c, r_g, m, n);
+    CFAR_Gamma<<<griddim,blockdim>>>(im_dev, T, r_c, r_g, m, n); //应该传入填充后的图像长宽系数
     cudaThreadSynchronize();
     checkCudaErrors(cudaMemcpy(result, T,  sizeof(double)*m*n, cudaMemcpyDeviceToHost));
     Mat detect_result = Mat::zeros(m, n, CV_8UC1);
@@ -180,6 +184,8 @@ int main(int argc, char *argv[])
     {
         for(int j = 0;j<n;j++)
         {
+            if(i>15 && j>15)
+                //printf("%f ", result[i*n+j]);
             if(result[i*n+j]>threshold)
                 detect_result.at<uchar>(i,j) = (unsigned char)255;
             else
