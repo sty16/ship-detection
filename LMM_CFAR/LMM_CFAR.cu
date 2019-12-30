@@ -25,17 +25,12 @@ __global__ void lognormal_mixture(double *im, int r_c, int r_g, int k, double Pf
     *************************************************************************/
     int i = threadIdx.x + blockDim.x * blockIdx.x;
     int j = threadIdx.y + blockDim.y * blockIdx.y;
-    printf("%d", blockIdx.y);
-    if(j>500)
-        printf("(%d,%d)\n", i, j);
     int size = r_c*r_c - r_g*r_g;
-    double *data = new double[size];
     for(int i = 0;i<size;i++)
     {
         // data[i] = 1.0;
         // printf("%.1f\n", data[i]);
     }
-    delete[] data;
 }
 
 
@@ -65,6 +60,21 @@ int main(int argc, char *argv[])
                 cout<<"Unknown option: "<<(char)optopt<<endl;
                 break;
         }
+    }
+    int deviceCount;
+    cudaGetDeviceCount(&deviceCount);
+    for(int i=0;i<deviceCount;i++)
+    {
+        cudaDeviceProp devProp;
+        cudaGetDeviceProperties(&devProp,i);
+        cout << "GPU device:" << i << ": " << devProp.name <<endl;
+        cout << "global memory: " << devProp.totalGlobalMem / 1024 / 1024 << "MB" <<endl;
+        cout << "SM number:" << devProp.multiProcessorCount <<endl;
+        cout << "shared memory:" << (devProp.sharedMemPerBlock / 1024.0) <<"KB"<<endl;
+        cout << "block max_thread:" << devProp.maxThreadsPerBlock <<endl;
+        cout << "registers per Block:" << devProp.regsPerBlock <<endl;
+        cout << "SM max theads:" << devProp.maxThreadsPerMultiProcessor <<endl;
+        cout << "======================================================" <<endl;     
     }
     ifstream infile(filename, ios::in | ios::binary);
     infile.read((char *)&channels, sizeof(int));
