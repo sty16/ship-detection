@@ -4,6 +4,7 @@
 #include<stdint.h>
 #include<assert.h>
 #include<cuda_runtime.h>
+#include<thrust/sort.h>
 #include"device_launch_parameters.h"
 #include<helper_cuda.h>
 #include<helper_functions.h>
@@ -11,6 +12,7 @@ using namespace cv;
 
 
 __device__ void  Memcpy(double *im, double *data, int row, int col, int r_c, int r_g, int n);
+__device__ void selection_sort(double *data, int left, int right);
 
 __global__ void lognormal_mixture(double *im, int r_c, int r_g, int k, double Pf, int m, int n) 
 {
@@ -49,7 +51,8 @@ __global__ void CFAR_Gamma(double *im, double *T, int r_c, int r_g, int m, int n
         int index = threadIdx.x + threadIdx.y*blockDim.x;
         clutter =  &data[index*size];
         Memcpy(im, clutter, row, col, r_c, r_g, n_pad);
-        int number = size * 0.7;
+        selection_sort(clutter, 0, size-1);
+        int number = size * 0.65;
         for(int i = 0; i< number; i++)
         {
             clutter_sum += clutter[i];
@@ -59,7 +62,7 @@ __global__ void CFAR_Gamma(double *im, double *T, int r_c, int r_g, int m, int n
         T[row*n+col] = I/I_C; 
         if(row==30&&col==30)
         {
-            printf("%f", im[row*n_pad+col]);
+            // printf("%f", im[row*n_pad+col]);
         }
     }
 }
@@ -105,7 +108,28 @@ __device__ void  Memcpy(double *im, double *data, int row, int col, int r_c, int
     }
 }
 
-
+__device__ void selection_sort(double *data, int left, int right)
+{
+   for(int i = left; i <= right; i++)
+   {
+        double min_val = data[i]; 
+        int min_idx = i;
+        for(int j = i+1; j <= right; j++)
+        {
+            double val_j = data[j];
+            if(val_j < min_val)
+            {
+                min_idx = j;
+                min_val = val_j;
+            }
+        }
+        if(i != min_idx)
+        {
+            data[min_idx] = data[i];
+            data[i] = min_val;
+        }
+   } 
+}
 
 int main(int argc, char *argv[])
 {
@@ -184,8 +208,6 @@ int main(int argc, char *argv[])
     {
         for(int j = 0;j<n;j++)
         {
-            if(i>15 && j>15)
-                //printf("%f ", result[i*n+j]);
             if(result[i*n+j]>threshold)
                 detect_result.at<uchar>(i,j) = (unsigned char)255;
             else
