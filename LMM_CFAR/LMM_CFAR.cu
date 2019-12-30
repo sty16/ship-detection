@@ -3,6 +3,7 @@
 #include<fstream>
 #include<stdint.h>
 #include<assert.h>
+#include<ctime>
 #include<cuda_runtime.h>
 #include<thrust/sort.h>
 #include"device_launch_parameters.h"
@@ -146,6 +147,8 @@ int main(int argc, char *argv[])
     int r_c = 15, r_g = 10;threshold = 4.7;
     dim3D arraydim;
     const char *filename = "../data/data.bin";   
+    clock_t start,end;
+    start = clock();
     static struct option long_options[] = {
         {"rc", required_argument, NULL,'c'},
         {"rg", required_argument, NULL,'g'}
@@ -221,6 +224,8 @@ int main(int argc, char *argv[])
                 detect_result.at<uchar>(i,j) = (unsigned char)0;
         }
     }
+    end = clock();
+    cout<<"GPU用时："<<(float)end-start<<end;
     imshow("gray" , detect_result);
     while(char(waitKey())!='q') {}
     // FreeDoubleArray(im,arraydim);
