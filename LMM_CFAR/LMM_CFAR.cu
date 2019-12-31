@@ -63,21 +63,8 @@ __global__ void CFAR_Gamma(double *im, double *T, int r_c, int r_g, int m, int n
         row = row + r_c; col = col + r_c; // 延拓后数据的索引位置发生改变
         clutter =  &data[index*size];
         Memcpy(im, clutter, row, col, r_c, r_g, n_pad);
-        // cudaStream_t s;
-        // cudaStreamCreateWithFlags(&s, cudaStreamDefault);
         simple_quicksort(clutter, 0, size-1, 0);
-        // cudaDeviceSynchronize();
-        // cudaStreamDestroy(s);
-        // selection_sort(clutter, 0, size-1);
         int number = size * 0.65;
-        if(row==30&&col==30)
-        {
-            for(int i=0;i<size;i++)
-            {
-                printf("%f ", clutter[i]);
-            }
-            printf("ok");
-        }
         for(int i = 0; i< number; i++)
         {
             clutter_sum += clutter[i];
@@ -91,7 +78,15 @@ __global__ void CFAR_Gamma(double *im, double *T, int r_c, int r_g, int m, int n
             }
         }
         I = I/9;
-        // T[(row-r_c)*n+(col-r_c)] = I/I_C; 
+        T[(row-r_c)*n+(col-r_c)] = I/I_C; 
+        if(row==30&&col==30)
+        {
+            // for(int i=0;i<size;i++)
+            // {
+            //     printf("%f ", clutter[i]);
+            // }
+            // printf("ok");
+        }
     }
 }
 __device__ void  Memcpy(double *im, double *data, int row, int col, int r_c, int r_g, int n)
