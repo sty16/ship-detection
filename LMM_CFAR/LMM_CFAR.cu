@@ -79,6 +79,7 @@ __global__ void CFAR_Gamma(double *im, double *T, int r_c, int r_g, int m, int n
         }
         I = I/9;
         T[(row-r_c)*n+(col-r_c)] = I/I_C; 
+<<<<<<< HEAD
         if(row==30&&col==30)
         {
             // for(int i=0;i<size;i++)
@@ -87,6 +88,8 @@ __global__ void CFAR_Gamma(double *im, double *T, int r_c, int r_g, int m, int n
             // }
             // printf("ok");
         }
+=======
+>>>>>>> 420259afac6deb001b0eaf796da30c4eb297f93d
     }
 }
 __device__ void  Memcpy(double *im, double *data, int row, int col, int r_c, int r_g, int n)
