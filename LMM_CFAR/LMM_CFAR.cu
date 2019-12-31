@@ -19,7 +19,7 @@ using namespace cv;
 
 __device__ void  Memcpy(double *im, double *data, int row, int col, int r_c, int r_g, int n);
 __device__ void selection_sort(double *data, int left, int right);
-__global__ void simple_quicksort(double *data, int left, int right, int depth);
+__device__ void simple_quicksort(double *data, int left, int right, int depth);
 
 
 __global__ void lognormal_mixture(double *im, int r_c, int r_g, int k, double Pf, int m, int n) 
@@ -46,10 +46,12 @@ __global__ void lognormal_mixture(double *im, int r_c, int r_g, int k, double Pf
         // printf("%.1f\n", data[i]);
     }
 }
-
+__global__ void test()
+{
+    printf("ok");
+}
 __global__ void CFAR_Gamma(double *im, double *T, int r_c, int r_g, int m, int n) {
     // n_pad为填充后图像的列数， n为原图像的列数
-    printf("ok");
     int row = threadIdx.x + blockDim.x * blockIdx.x;
     int col = threadIdx.y + blockDim.y * blockIdx.y;
     int size = (r_c*r_c-r_g*r_g)*4;int n_pad = n + 2*r_c;
@@ -62,11 +64,20 @@ __global__ void CFAR_Gamma(double *im, double *T, int r_c, int r_g, int m, int n
         clutter =  &data[index*size];
         Memcpy(im, clutter, row, col, r_c, r_g, n_pad);
         // cudaStream_t s;
-        // cudaStreamCreateWithFlags(&s, cudaStreamNonBlocking);
-        // simple_quicksort<<<1, 1, 0, s>>>(clutter, 0, size-1, 0);
+        // cudaStreamCreateWithFlags(&s, cudaStreamDefault);
+        simple_quicksort(clutter, 0, size-1, 0);
+        // cudaDeviceSynchronize();
         // cudaStreamDestroy(s);
-        selection_sort(clutter, 0, size-1);
+        // selection_sort(clutter, 0, size-1);
         int number = size * 0.65;
+        if(row==30&&col==30)
+        {
+            for(int i=0;i<size;i++)
+            {
+                printf("%f ", clutter[i]);
+            }
+            printf("ok");
+        }
         for(int i = 0; i< number; i++)
         {
             clutter_sum += clutter[i];
@@ -80,14 +91,7 @@ __global__ void CFAR_Gamma(double *im, double *T, int r_c, int r_g, int m, int n
             }
         }
         I = I/9;
-        T[(row-r_c)*n+(col-r_c)] = I/I_C; 
-        if(row==30&&col==30)
-        {
-            for(int i=0;i<size;i++)
-            {
-                printf("%f ", clutter[i]);
-            }
-        }
+        // T[(row-r_c)*n+(col-r_c)] = I/I_C; 
     }
 }
 __device__ void  Memcpy(double *im, double *data, int row, int col, int r_c, int r_g, int n)
@@ -155,9 +159,8 @@ __device__ void selection_sort(double *data, int left, int right)
    } 
 }
 
-__global__  void simple_quicksort(double *data, int left, int right, int depth)
+__device__  void simple_quicksort(double *data, int left, int right, int depth)
 {
-
     if (depth >= MAX_DEPTH || right-left <= INSERTION_SORT)
     {
         selection_sort(data, left, right);
@@ -190,19 +193,13 @@ __global__  void simple_quicksort(double *data, int left, int right, int depth)
     int nleft  = lptr - data;
     if (left < (rptr-data))
     {
-        cudaStream_t s;
-        cudaStreamCreateWithFlags(&s, cudaStreamNonBlocking);
-        simple_quicksort<<< 1, 1, 0, s >>>(data, left, nright, depth+1);
-        cudaStreamDestroy(s);
+        simple_quicksort(data, left, nright, depth+1);
     }
 
     // Launch a new block to sort the right part.
     if ((lptr-data) < right)
     {
-        cudaStream_t s1;
-        cudaStreamCreateWithFlags(&s1, cudaStreamNonBlocking);
-        simple_quicksort<<< 1, 1, 0, s1 >>>(data, nleft, right, depth+1);
-        cudaStreamDestroy(s1);
+        simple_quicksort(data, nleft, right, depth+1);
     }
 }
 
@@ -282,8 +279,6 @@ int main(int argc, char *argv[])
     cudaStreamCreate(&detect);
     CFAR_Gamma<<<griddim, blockdim, 0, detect>>>(im_dev, T, r_c, r_g, m, n); //应该传入未填充的图像长宽系数
     cudaStreamSynchronize(detect);
-    cudaStreamDestroy(detect);
-    cudaThreadSynchronize();
     checkCudaErrors(cudaMemcpy(result, T,  sizeof(double)*m*n, cudaMemcpyDeviceToHost));
     Mat detect_result = Mat::zeros(m, n, CV_8UC1);
     for(int i = 0;i<m;i++)
@@ -296,6 +291,7 @@ int main(int argc, char *argv[])
                 detect_result.at<uchar>(i,j) = (unsigned char)0;
         }
     }
+    cudaStreamDestroy(detect);
     end = clock();
     imshow("origin" , image); 
     imshow("detected" , detect_result);
