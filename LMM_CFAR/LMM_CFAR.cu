@@ -10,11 +10,16 @@
 #include"device_launch_parameters.h"
 #include<helper_cuda.h>
 #include<helper_functions.h>
+
+#define MAX_DEPTH       16
+#define INSERTION_SORT  32
 using namespace cv;
 
 
 __device__ void  Memcpy(double *im, double *data, int row, int col, int r_c, int r_g, int n);
 __device__ void selection_sort(double *data, int left, int right);
+__global__ void simple_quicksort(double *data, int left, int right, int depth);
+
 
 __global__ void lognormal_mixture(double *im, int r_c, int r_g, int k, double Pf, int m, int n) 
 {
@@ -51,9 +56,10 @@ __global__ void CFAR_Gamma(double *im, double *T, int r_c, int r_g, int m, int n
     if(row < m && col < n)
     {
         int index = threadIdx.x + threadIdx.y*blockDim.x;
+        row = row + r_c; col = col + r_c; // 延拓后数据的索引位置发生改变
         clutter =  &data[index*size];
         Memcpy(im, clutter, row, col, r_c, r_g, n_pad);
-        selection_sort(clutter, 0, size-1);
+        simple_quicksort<<<1, 1>>>(clutter, 0, size-1, 0);
         int number = size * 0.65;
         for(int i = 0; i< number; i++)
         {
@@ -68,7 +74,7 @@ __global__ void CFAR_Gamma(double *im, double *T, int r_c, int r_g, int m, int n
             }
         }
         I = I/9;
-        T[row*n+col] = I/I_C; 
+        T[(row-r_c)*n+(col-r_c)] = I/I_C; 
         if(row==30&&col==30)
         {
             // printf("%f", im[row*n_pad+col]);
@@ -140,6 +146,57 @@ __device__ void selection_sort(double *data, int left, int right)
    } 
 }
 
+__global__  void simple_quicksort(double *data, int left, int right, int depth)
+{
+
+    if (depth >= MAX_DEPTH || right-left <= INSERTION_SORT)
+    {
+        selection_sort(data, left, right);
+        return;
+    }
+    double *lptr = &data[left];
+    double *rptr = &data[right];
+    double  pivot = data[(left+right)/2];
+    while(lptr <= rptr)
+    {
+        double lval = *lptr;
+        double rval = *rptr;
+        while(lval < pivot)
+        {
+            lptr++;
+            lval = *lptr;
+        }
+        while(rval > pivot)
+        {
+            rptr--;
+            rval = *rptr;
+        }
+        if(lptr <= rptr)
+        {
+            *lptr++ = rval;
+            *rptr-- = lval;
+        }
+    }
+    int nright = rptr - data;
+    int nleft  = lptr - data;
+    if (left < (rptr-data))
+    {
+        cudaStream_t s;
+        cudaStreamCreateWithFlags(&s, cudaStreamNonBlocking);
+        simple_quicksort<<< 1, 1, 0, s >>>(data, left, nright, depth+1);
+        cudaStreamDestroy(s);
+    }
+
+    // Launch a new block to sort the right part.
+    if ((lptr-data) < right)
+    {
+        cudaStream_t s1;
+        cudaStreamCreateWithFlags(&s1, cudaStreamNonBlocking);
+        simple_quicksort<<< 1, 1, 0, s1 >>>(data, nleft, right, depth+1);
+        cudaStreamDestroy(s1);
+    }
+}
+
 int main(int argc, char *argv[])
 {
     double **im, *im_pad, *im_dev, *data_dev, *T, *result, threshold;
@@ -182,6 +239,7 @@ int main(int argc, char *argv[])
         cout << "block max_thread:" << devProp.maxThreadsPerBlock <<endl;
         cout << "registers per Block:" << devProp.regsPerBlock <<endl;
         cout << "SM max theads:" << devProp.maxThreadsPerMultiProcessor <<endl;
+        printf("GPU device has compute capabilities (SM %d.%d)\n", devProp.major, devProp.minor);
         cout << "======================================================" <<endl;     
     }
     ifstream infile(filename, ios::in | ios::binary);
