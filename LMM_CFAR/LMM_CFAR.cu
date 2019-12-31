@@ -6,6 +6,7 @@
 #include<time.h>
 #include<unistd.h>
 #include<cuda_runtime.h>
+#include<cublas_v2.h>
 #include<thrust/sort.h>
 #include"device_launch_parameters.h"
 #include<helper_cuda.h>
@@ -48,6 +49,7 @@ __global__ void lognormal_mixture(double *im, int r_c, int r_g, int k, double Pf
 
 __global__ void CFAR_Gamma(double *im, double *T, int r_c, int r_g, int m, int n) {
     // n_pad为填充后图像的列数， n为原图像的列数
+    printf("ok");
     int row = threadIdx.x + blockDim.x * blockIdx.x;
     int col = threadIdx.y + blockDim.y * blockIdx.y;
     int size = (r_c*r_c-r_g*r_g)*4;int n_pad = n + 2*r_c;
@@ -59,7 +61,11 @@ __global__ void CFAR_Gamma(double *im, double *T, int r_c, int r_g, int m, int n
         row = row + r_c; col = col + r_c; // 延拓后数据的索引位置发生改变
         clutter =  &data[index*size];
         Memcpy(im, clutter, row, col, r_c, r_g, n_pad);
-        simple_quicksort<<<1, 1>>>(clutter, 0, size-1, 0);
+        // cudaStream_t s;
+        // cudaStreamCreateWithFlags(&s, cudaStreamNonBlocking);
+        // simple_quicksort<<<1, 1, 0, s>>>(clutter, 0, size-1, 0);
+        // cudaStreamDestroy(s);
+        selection_sort(clutter, 0, size-1);
         int number = size * 0.65;
         for(int i = 0; i< number; i++)
         {
@@ -77,7 +83,10 @@ __global__ void CFAR_Gamma(double *im, double *T, int r_c, int r_g, int m, int n
         T[(row-r_c)*n+(col-r_c)] = I/I_C; 
         if(row==30&&col==30)
         {
-            // printf("%f", im[row*n_pad+col]);
+            for(int i=0;i<size;i++)
+            {
+                printf("%f ", clutter[i]);
+            }
         }
     }
 }
@@ -199,7 +208,7 @@ __global__  void simple_quicksort(double *data, int left, int right, int depth)
 
 int main(int argc, char *argv[])
 {
-    double **im, *im_pad, *im_dev, *data_dev, *T, *result, threshold;
+    double **im, *im_pad, *im_dev, *T, *result, threshold;
     int ch, opt_index, channels,m,n;    // opt_index为选项在long_options中的索引
     const char *optstring = "d:c:g:";
     int r_c = 15, r_g = 10;threshold = 4.7;
@@ -269,7 +278,11 @@ int main(int argc, char *argv[])
     checkCudaErrors(cudaMalloc((void**)&T, sizeof(double)*m*n));
     checkCudaErrors(cudaMemcpy(im_dev, im_pad, sizeof(double)*row_pad*col_pad, cudaMemcpyHostToDevice));
     result = new double[m*n];
-    CFAR_Gamma<<<griddim,blockdim>>>(im_dev, T, r_c, r_g, m, n); //应该传入填充后的图像长宽系数
+    cudaStream_t detect;
+    cudaStreamCreate(&detect);
+    CFAR_Gamma<<<griddim, blockdim, 0, detect>>>(im_dev, T, r_c, r_g, m, n); //应该传入未填充的图像长宽系数
+    cudaStreamSynchronize(detect);
+    cudaStreamDestroy(detect);
     cudaThreadSynchronize();
     checkCudaErrors(cudaMemcpy(result, T,  sizeof(double)*m*n, cudaMemcpyDeviceToHost));
     Mat detect_result = Mat::zeros(m, n, CV_8UC1);
