@@ -91,7 +91,7 @@ __global__ void CFAR_Gamma(double *im, double *T, int r_c, int r_g, int m, int n
             }
         }
         I = I/9;
-        // T[(row-r_c)*n+(col-r_c)] = I/I_C; 
+        T[(row-r_c)*n+(col-r_c)] = I/I_C; 
     }
 }
 __device__ void  Memcpy(double *im, double *data, int row, int col, int r_c, int r_g, int n)
