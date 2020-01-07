@@ -46,9 +46,25 @@ __global__ void lognormal_mixture(double *im, int r_c, int r_g, int k, double Pf
         // printf("%.1f\n", data[i]);
     }
 }
-__global__ void test()
+__global__ void malloc_global(double **a)
 {
-    printf("ok");
+    int i = threadIdx.x + blockDim.x * blockIdx.x;
+    int j = threadIdx.y + blockDim.y * blockIdx.y;
+    if(i==10&&j==10)
+    {
+        int N = 10000;
+        printf("ok");
+        cudaMalloc((void**)a, sizeof(double)*N);
+        for(int i=0;i<N;i++)
+        {
+            (*a)[i] = i;
+        } 
+    }
+    __syncthreads();
+    if(i==11&&j==11)
+    {
+        printf("%f\n",(*a)[500]);
+    }
 }
 __global__ void CFAR_Gamma(double *im, double *T, int r_c, int r_g, int m, int n) {
     // n_pad为填充后图像的列数， n为原图像的列数
@@ -79,6 +95,14 @@ __global__ void CFAR_Gamma(double *im, double *T, int r_c, int r_g, int m, int n
         }
         I = I/9;
         T[(row-r_c)*n+(col-r_c)] = I/I_C; 
+        // double *a;
+        // cudaMalloc((void **)&a,sizeof(double)*1000);
+        // for(int i=0;i<1000;i++)
+        // {
+        //     a[i] = i;
+        //     if(i==50)
+        //         {printf("ok");printf("%f ", a[i]);}
+        // }
         if(row==30&&col==30)
         {
             // for(int i=0;i<size;i++)
@@ -87,6 +111,7 @@ __global__ void CFAR_Gamma(double *im, double *T, int r_c, int r_g, int m, int n
             // }
             // printf("ok");
         }
+        // cudaFree(a);
     }
 }
 __device__ void  Memcpy(double *im, double *data, int row, int col, int r_c, int r_g, int n)
@@ -248,7 +273,6 @@ int main(int argc, char *argv[])
     infile.read((char *)&arraydim.m,sizeof(size_t));
     infile.read((char *)&arraydim.n,sizeof(size_t));
     m = (int)arraydim.m; n = (int)arraydim.n;
-    cout<<m<<" "<<n<<endl;
     im = new double *[m];
     for(int i=0;i<m;i++)
     {
@@ -273,6 +297,10 @@ int main(int argc, char *argv[])
     cudaStream_t detect;
     cudaStreamCreate(&detect);
     CFAR_Gamma<<<griddim, blockdim, 0, detect>>>(im_dev, T, r_c, r_g, m, n); //应该传入未填充的图像长宽系数
+    // double **a;
+    // checkCudaErrors(cudaMalloc((void**)&a, sizeof(double *)));
+    // griddim.x = 6;griddim.y = 6;
+    // malloc_global<<<griddim,blockdim,0>>>(a);
     cudaStreamSynchronize(detect);
     checkCudaErrors(cudaMemcpy(result, T,  sizeof(double)*m*n, cudaMemcpyDeviceToHost));
     Mat detect_result = Mat::zeros(m, n, CV_8UC1);

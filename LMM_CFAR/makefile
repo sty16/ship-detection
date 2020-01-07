@@ -5,7 +5,7 @@ NVCC = nvcc
 CPPFLAGS = -I. -I/usr/local/include/opencv4/opencv -I/usr/local/include/opencv4 -std=c++11
 CUINCLUDES = -I. -I/usr/local/cuda/samples/common/inc \
 -I/usr/local/include/opencv4/opencv -I/usr/local/include/opencv4 
-CUGENCODE_FLAGS =  -arch=sm_35  -rdc=true  -std=c++11
+CUGENCODE_FLAGS =  -arch=sm_50 -rdc=true  -std=c++11
 LDFLAGS = -L/usr/lib/x86_64-linux-gnu/  -L/usr/local/lib \
 -L/usr/local/cuda/lib64/  -lcudart   -lcudadevrt                                             \
 -lopencv_dnn -lopencv_gapi -lopencv_highgui -lopencv_ml -lopencv_objdetect -lopencv_photo -lopencv_stitching \
@@ -14,7 +14,7 @@ LDFLAGS = -L/usr/lib/x86_64-linux-gnu/  -L/usr/local/lib \
 
 
 $(target):$(objs)
-	nvcc -arch=sm_35 -dlink -o LMM_CFAR_link.o LMM_CFAR.o -lcudadevrt -lcudart
+	nvcc -arch=sm_50 -dlink -o LMM_CFAR_link.o LMM_CFAR.o 
 	$(CC) LMM_CFAR_link.o $(objs) $(LDFLAGS) -o $(target) 
 	rm -f $(objs)
 
