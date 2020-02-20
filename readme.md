@@ -1,3 +1,14 @@
+# ship detection using CUDA
+
+<p>
+    <a href="https://github.com/sty16/ship-detection" target="_blank">
+        <img alt="GitHub stars"src="https://img.shields.io/github/stars/sty16/ship-detection?style=social">
+    </a>
+    <a href="https://github.com/sty16/ship-detection/blob/master/LICENSE" target="_blank">
+    <img alt="GitHub license" src="https://img.shields.io/github/license/sty16/ship-detection">
+    </a>
+</p>
+
 ### 1.Compile link method
 
 ```
